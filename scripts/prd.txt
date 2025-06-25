@@ -1,0 +1,145 @@
+# Product Requirements Document (PRD)
+# AI-Driven Customer Sentiment Analysis Webservice
+
+<context>
+# Overview
+A web-based SaaS platform (SentimentScope) that provides real-time customer sentiment analysis using AI, helping businesses understand customer feedback and improve their services through actionable insights.
+
+- **Problem Solved:** Businesses struggle to extract actionable insights from large volumes of customer feedback. Manual analysis is slow, expensive, and error-prone.
+- **Target Audience:**
+  - Small to medium businesses
+  - Customer service teams
+  - Product managers
+  - Marketing professionals
+  - E-commerce businesses
+- **Value:** Real-time, affordable, and actionable sentiment analytics with a user-friendly interface and scalable subscription model.
+
+# Core Features
+- Real-time sentiment analysis using Anthropic Claude API
+- Affordable pricing with free tier
+- Easy-to-use web interface
+- Comprehensive analytics dashboard
+- Scalable subscription-based model
+
+# User Experience
+- **Personas:**
+  - Business owner seeking quick insights
+  - Customer support manager tracking team performance
+  - Marketer analyzing campaign feedback
+- **Key Flows:**
+  - Sign up → Upload or enter feedback → View sentiment results → Download/export analytics
+  - Manage subscription and usage
+- **UI/UX Considerations:**
+  - Clean dashboard with charts (Chart.js)
+  - Responsive design (Tailwind CSS)
+  - Simple onboarding and clear feedback
+</context>
+<PRD>
+# Technical Architecture
+## Technology Stack
+- **Backend:** Node.js 18+, Express.js (TypeScript), Supabase PostgreSQL, Supabase Auth, Stripe, Anthropic Claude API, Redis, Supabase Storage
+- **Frontend:** React 18 (TypeScript), Tailwind CSS, Zustand, Chart.js, Vite, Axios
+- **Deployment:** Vercel (frontend), Railway (backend), Supabase (database), GitHub Actions (CI/CD)
+- **Dev Tools:** Windsurf Pro, Tempo AI, GitHub, GitHub Projects
+
+## Database Schema
+### Users Table
+- id: UUID (primary key)
+- email: String (unique)
+- full_name: String
+- created_at: Timestamp
+- updated_at: Timestamp
+- subscription_id: String (Stripe customer ID)
+- subscription_status: Enum (free, pro, enterprise)
+- api_usage_current_month: Integer
+- api_limit_per_month: Integer
+
+### Sentiment_Analyses Table
+- id: UUID (primary key)
+- user_id: UUID (foreign key to users)
+- input_text: Text
+- sentiment_result: JSONB (sentiment, confidence, key_phrases)
+- analysis_type: Enum (single_text, batch_file)
+- file_name: String (optional)
+- tokens_used: Integer
+- created_at: Timestamp
+- processing_time_ms: Integer
+
+### Subscriptions Table
+- id: UUID (primary key)
+- user_id: UUID (foreign key to users)
+- stripe_subscription_id: String
+- stripe_customer_id: String
+- plan_name: Enum (free, pro, enterprise)
+- status: Enum (active, canceled, past_due)
+- current_period_start: Timestamp
+- current_period_end: Timestamp
+- created_at: Timestamp
+- updated_at: Timestamp
+
+### Usage_Tracking Table
+- id: UUID (primary key)
+- user_id: UUID (foreign key to users)
+- date: Date
+- api_calls_count: Integer
+- tokens_consumed: Integer
+- subscription_plan: String
+- created_at: Timestamp
+
+# API Specifications
+## Authentication Endpoints
+- POST /api/auth/register: Register new user
+- POST /api/auth/login: User login
+- POST /api/auth/logout: Logout
+- POST /api/auth/refresh: Refresh token
+- POST /api/auth/forgot-password: Password reset
+
+## Sentiment Analysis Endpoints
+- POST /api/sentiment/analyze: Analyze single text
+- POST /api/sentiment/analyze-batch: Analyze batch file
+- GET /api/sentiment/batch-status/:job_id: Batch job status
+- GET /api/sentiment/history: Analysis history
+
+## User Management Endpoints
+- GET /api/user/profile: Get user profile
+- PUT /api/user/profile: Update profile
+- GET /api/user/usage: Usage stats
+
+## Subscription Endpoints
+- GET /api/subscription/plans: List plans
+- POST /api/subscription/create-checkout-session: Stripe checkout
+- POST /api/subscription/create-portal-session: Stripe portal
+- POST /api/webhooks/stripe: Stripe webhook
+
+# Development Roadmap
+- **MVP Requirements:**
+  - User authentication (Supabase Auth)
+  - Sentiment analysis (Claude API integration)
+  - Analytics dashboard (React, Chart.js)
+  - Subscription management (Stripe)
+  - Usage tracking
+- **Future Enhancements:**
+  - Batch file analysis
+  - Advanced analytics (key phrase extraction, trends)
+  - Team management
+  - Customizable reports
+  - Multi-language support
+
+# Logical Dependency Chain
+- Set up database and authentication
+- Integrate sentiment analysis API
+- Build core dashboard UI
+- Implement subscription and usage tracking
+- Add analytics and reporting features
+- Enhance with batch analysis and advanced features
+
+# Risks and Mitigations
+- **API Cost Overruns:** Monitor usage, enforce limits
+- **Data Privacy:** Use secure storage, follow best practices
+- **MVP Scope Creep:** Strictly define MVP, phase enhancements
+- **Resource Constraints:** Use free tiers, optimize for cost
+
+# Appendix
+- Research: Anthropic Claude API docs, Supabase docs, Stripe docs
+- Technical specs: See above database schema and API endpoints
+</PRD> 

@@ -1,0 +1,460 @@
+# Product Requirements Document (PRD)
+# AI-Driven Customer Sentiment Analysis Webservice
+
+## Project Overview
+Product Name: SentimentScope
+Version: 1.0.0
+Team Size: 4 developers
+Budget: Free (except Anthropic API $20-100/month + Windsurf Pro $20/month)
+Timeline: 6 weeks
+Platform: Tempo AI for code generation (Node.js + Stripe + Supabase)
+
+## Product Vision
+A web-based SaaS platform that provides real-time customer sentiment analysis using AI, helping businesses understand customer feedback and improve their services through actionable insights.
+
+## Target Audience
+- Small to medium businesses
+- Customer service teams
+- Product managers
+- Marketing professionals
+- E-commerce businesses
+
+## Core Value Proposition
+- Real-time sentiment analysis using Anthropic Claude API
+- Affordable pricing with free tier
+- Easy-to-use web interface
+- Comprehensive analytics dashboard
+- Scalable subscription-based model
+
+## Technical Architecture
+
+### Technology Stack
+Backend:
+- Runtime: Node.js 18+
+- Framework: Express.js with TypeScript
+- Database: Supabase PostgreSQL (free tier)
+- Authentication: Supabase Auth
+- Payments: Stripe integration
+- AI Service: Anthropic Claude API
+- Caching: Redis (for API response caching)
+- File Storage: Supabase Storage
+
+Frontend:
+- Framework: React 18 with TypeScript
+- UI Library: Tailwind CSS
+- State Management: Zustand
+- Charts: Chart.js with react-chartjs-2
+- Build Tool: Vite
+- HTTP Client: Axios
+
+Deployment:
+- Frontend: Vercel (free tier)
+- Backend: Railway (free tier)
+- Database: Supabase (free tier)
+- CI/CD: GitHub Actions (free tier)
+
+Development Tools:
+- IDE: Windsurf Pro ($20/month)
+- Code Generation: Tempo AI
+- Version Control: GitHub
+- Project Management: GitHub Projects
+
+## Database Schema
+
+### Users Table
+- id: UUID (primary key)
+- email: String (unique)
+- full_name: String
+- created_at: Timestamp
+- updated_at: Timestamp
+- subscription_id: String (Stripe customer ID)
+- subscription_status: Enum (free, pro, enterprise)
+- api_usage_current_month: Integer
+- api_limit_per_month: Integer
+
+### Sentiment_Analyses Table
+- id: UUID (primary key)
+- user_id: UUID (foreign key to users)
+- input_text: Text
+- sentiment_result: JSONB (sentiment, confidence, key_phrases)
+- analysis_type: Enum (single_text, batch_file)
+- file_name: String (optional)
+- tokens_used: Integer
+- created_at: Timestamp
+- processing_time_ms: Integer
+
+### Subscriptions Table
+- id: UUID (primary key)
+- user_id: UUID (foreign key to users)
+- stripe_subscription_id: String
+- stripe_customer_id: String
+- plan_name: Enum (free, pro, enterprise)
+- status: Enum (active, canceled, past_due)
+- current_period_start: Timestamp
+- current_period_end: Timestamp
+- created_at: Timestamp
+- updated_at: Timestamp
+
+### Usage_Tracking Table
+- id: UUID (primary key)
+- user_id: UUID (foreign key to users)
+- date: Date
+- api_calls_count: Integer
+- tokens_consumed: Integer
+- subscription_plan: String
+- created_at: Timestamp
+
+## API Specifications
+
+### Authentication Endpoints
+POST /api/auth/register
+- Body: { email, password, full_name }
+- Response: { user, access_token, refresh_token }
+
+POST /api/auth/login
+- Body: { email, password }
+- Response: { user, access_token, refresh_token }
+
+POST /api/auth/logout
+- Headers: Authorization Bearer token
+- Response: { message: "Logged out successfully" }
+
+POST /api/auth/refresh
+- Body: { refresh_token }
+- Response: { access_token }
+
+POST /api/auth/forgot-password
+- Body: { email }
+- Response: { message: "Reset email sent" }
+
+### Sentiment Analysis Endpoints
+POST /api/sentiment/analyze
+- Headers: Authorization Bearer token
+- Body: { text: string, options?: { include_keywords: boolean } }
+- Response: { 
+    sentiment: "positive" | "negative" | "neutral",
+    confidence: number,
+    key_phrases: string[],
+    processing_time_ms: number,
+    tokens_used: number
+  }
+
+POST /api/sentiment/analyze-batch
+- Headers: Authorization Bearer token
+- Body: FormData with file (CSV/TXT)
+- Response: { 
+    job_id: string,
+    total_entries: number,
+    estimated_completion: timestamp
+  }
+
+GET /api/sentiment/batch-status/:job_id
+- Headers: Authorization Bearer token
+- Response: { 
+    status: "processing" | "completed" | "failed",
+    progress: number,
+    results?: Array<SentimentResult>
+  }
+
+GET /api/sentiment/history
+- Headers: Authorization Bearer token
+- Query: ?page=1&limit=20&date_from&date_to
+- Response: { 
+    analyses: Array<SentimentAnalysis>,
+    pagination: { page, limit, total, total_pages }
+  }
+
+### User Management Endpoints
+GET /api/user/profile
+- Headers: Authorization Bearer token
+- Response: { user: UserProfile, subscription: SubscriptionInfo }
+
+PUT /api/user/profile
+- Headers: Authorization Bearer token
+- Body: { full_name?, email? }
+- Response: { user: UserProfile }
+
+GET /api/user/usage
+- Headers: Authorization Bearer token
+- Response: { 
+    current_month_usage: number,
+    limit: number,
+    subscription_plan: string,
+    usage_history: Array<DailyUsage>
+  }
+
+### Subscription Endpoints
+GET /api/subscription/plans
+- Response: { plans: Array<SubscriptionPlan> }
+
+POST /api/subscription/create-checkout-session
+- Headers: Authorization Bearer token
+- Body: { plan_id: string, success_url: string, cancel_url: string }
+- Response: { checkout_url: string }
+
+POST /api/subscription/create-portal-session
+- Headers: Authorization Bearer token
+- Body: { return_url: string }
+- Response: { portal_url: string }
+
+POST /api/webhooks/stripe
+- Body: Stripe webhook payload
+- Headers: stripe-signature
+- Response: { received: true }
+
+### Analytics Endpoints
+GET /api/analytics/dashboard
+- Headers: Authorization Bearer token
+- Query: ?period=30d
+- Response: {
+    total_analyses: number,
+    sentiment_distribution: { positive: number, negative: number, neutral: number },
+    daily_usage: Array<{ date: string, count: number }>,
+    top_keywords: Array<{ keyword: string, frequency: number }>
+  }
+
+## Subscription Plans
+
+### Free Tier
+- 100 API calls per month
+- Single text analysis only
+- Basic analytics
+- Email support
+- Price: $0/month
+
+### Pro Tier
+- 5,000 API calls per month
+- Batch file processing
+- Advanced analytics
+- Priority email support
+- Export functionality
+- Price: $19/month
+
+### Enterprise Tier
+- 50,000 API calls per month
+- Custom integrations
+- Advanced analytics with trends
+- Priority support + phone
+- Custom reporting
+- Team management
+- Price: $99/month
+
+## User Stories
+
+### Authentication & Onboarding
+As a new user, I want to register with my email so that I can access the sentiment analysis service.
+As a user, I want to login securely so that my data is protected.
+As a user, I want to reset my password if I forget it.
+As a user, I want to see a clear onboarding flow explaining the service.
+
+### Sentiment Analysis Core Features
+As a user, I want to paste text and get instant sentiment analysis results.
+As a user, I want to upload a CSV/TXT file and analyze multiple texts in batch.
+As a user, I want to see confidence scores for sentiment predictions.
+As a user, I want to see key phrases that influenced the sentiment.
+As a user, I want to view my analysis history with search and filters.
+As a user, I want to export my analysis results to CSV.
+
+### Subscription & Billing
+As a user, I want to see my current usage and limits clearly.
+As a user, I want to upgrade my plan when I reach my limits.
+As a user, I want to manage my subscription and billing through Stripe portal.
+As a user, I want to receive notifications before reaching my usage limits.
+
+### Analytics & Insights
+As a user, I want to see overall sentiment trends in my analyses.
+As a user, I want to view usage analytics and patterns.
+As a user, I want to see the most common keywords in my analyses.
+As a user, I want to compare sentiment across different time periods.
+
+## UI/UX Requirements
+
+### Design System
+- Clean, modern interface using Tailwind CSS
+- Responsive design for desktop and mobile
+- Consistent color scheme: Blue primary, Gray neutrals
+- Typography: Inter font family
+- Accessibility: WCAG 2.1 AA compliance
+
+### Key Pages
+1. Landing Page
+   - Hero section with value proposition
+   - Feature highlights
+   - Pricing table
+   - Call-to-action buttons
+
+2. Authentication Pages
+   - Login form with social auth options
+   - Registration form with email verification
+   - Password reset flow
+   - Email verification confirmation
+
+3. Dashboard
+   - Usage metrics overview
+   - Recent analyses summary
+   - Quick analysis input
+   - Navigation sidebar
+
+4. Analysis Pages
+   - Single text analysis interface
+   - Batch file upload interface
+   - Results display with visualizations
+   - Analysis history table with pagination
+
+5. Analytics Dashboard
+   - Sentiment distribution charts
+   - Usage trends over time
+   - Top keywords cloud
+   - Export functionality
+
+6. Settings & Profile
+   - User profile management
+   - Subscription management
+   - API usage monitoring
+   - Notification preferences
+
+### Component Requirements
+- Loading states for all async operations
+- Error handling with user-friendly messages
+- Success notifications for completed actions
+- Progress indicators for batch processing
+- Tooltip help text for complex features
+- Mobile-responsive navigation
+- Dark/light mode toggle (optional)
+
+## Performance Requirements
+- API response time: < 2 seconds for single analysis
+- Page load time: < 3 seconds
+- File upload: Support up to 10MB files
+- Batch processing: Handle up to 1000 entries per file
+- Concurrent users: Support 100+ simultaneous users
+- Database queries: < 500ms response time
+- Caching: Implement Redis caching for frequently accessed data
+
+## Security Requirements
+- All API endpoints require authentication (except public routes)
+- JWT tokens with 24-hour expiration
+- Refresh token rotation
+- Input validation and sanitization
+- SQL injection prevention
+- XSS protection
+- CORS configuration
+- Rate limiting: 100 requests per minute per user
+- Sensitive data encryption at rest
+- HTTPS enforcement
+- Stripe webhooks signature verification
+
+## Integration Requirements
+
+### Anthropic Claude API
+- Use Claude-3-Haiku for cost optimization
+- Implement request caching to reduce API calls
+- Batch processing for multiple texts
+- Error handling and retry logic
+- Usage tracking for billing
+- Prompt optimization for consistent results
+
+### Stripe Integration
+- Subscription lifecycle management
+- Webhook handling for payment events
+- Customer portal integration
+- Usage-based billing
+- Invoice generation
+- Failed payment handling
+
+### Supabase Integration
+- Authentication with email verification
+- Row Level Security (RLS) policies
+- Real-time subscriptions for live updates
+- File storage for uploaded documents
+- Database backups and migrations
+
+## Testing Requirements
+- Unit tests for all service functions
+- Integration tests for API endpoints
+- E2E tests for critical user flows
+- Stripe webhook testing with test events
+- Load testing for concurrent users
+- Security testing for authentication flows
+
+## Deployment Requirements
+- Automated deployment via GitHub Actions
+- Environment-specific configurations
+- Database migrations automation
+- Health check endpoints
+- Error monitoring and logging
+- Performance monitoring
+- Automated backups
+
+## Success Metrics
+- User registration rate: Target 100 users in first month
+- API usage: Target 10,000 analyses in first month
+- Conversion rate: Target 5% free to paid conversion
+- User retention: Target 60% monthly active users
+- System uptime: Target 99.5% availability
+- API response time: Target < 2 seconds average
+- Customer satisfaction: Target 4.5/5 rating
+
+## Risk Mitigation
+- Anthropic API costs: Implement usage monitoring and alerts
+- Free tier limits: Monitor Vercel, Railway, Supabase usage
+- Security vulnerabilities: Regular security audits
+- Performance issues: Implement caching and optimization
+- Data loss: Automated backups and disaster recovery
+- User experience: Continuous testing and feedback collection
+
+## Future Enhancements (Post-MVP)
+- Mobile app development
+- API webhooks for third-party integrations
+- Advanced sentiment analysis (emotion detection)
+- Multi-language support
+- Team collaboration features
+- Custom model training
+- Real-time analysis streaming
+- Advanced reporting and exports
+- Integration with popular platforms (Slack, Teams)
+
+## Development Guidelines for Tempo AI
+
+### Code Generation Requirements
+- Generate TypeScript code with strict type checking
+- Include comprehensive error handling
+- Add JSDoc comments for all functions
+- Follow Node.js best practices
+- Include input validation for all endpoints
+- Generate responsive React components
+- Include loading and error states
+- Follow RESTful API conventions
+- Generate database schemas with proper indexes
+- Include comprehensive test suites
+
+### File Structure to Generate
+```
+backend/
+├── src/
+│   ├── config/
+│   ├── controllers/
+│   ├── middleware/
+│   ├── models/
+│   ├── routes/
+│   ├── services/
+│   ├── utils/
+│   └── types/
+├── tests/
+├── migrations/
+└── package.json
+
+frontend/
+├── src/
+│   ├── components/
+│   ├── pages/
+│   ├── services/
+│   ├── store/
+│   ├── types/
+│   ├── utils/
+│   └── hooks/
+├── public/
+└── package.json
+```
+
+This PRD should provide comprehensive guidance for Tempo AI to generate the complete project structure and core functionality.
